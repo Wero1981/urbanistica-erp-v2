@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  /* Marca */
+  --color-primary: #242b57;
+  --color-primary-hover: #1b2145;
+  --color-primary-soft: #eef0f7;
+
+  --color-secondary: #4996c6;
+  --color-secondary-hover: #397da7;
+  --color-secondary-soft: #edf6fb;
+
+  /* Superficies */
+  --color-background: #f5f7f9;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f3f5;
+
+  /* Texto */
+  --color-text: #1f2937;
+  --color-text-muted: #707f8f;
+  --color-text-inverse: #ffffff;
+
+  /* Bordes */
+  --color-border: #dce1e6;
+  --color-border-strong: #b8c0c8;
+
+  /* Estados */
+  --color-success: #15803d;
+  --color-success-soft: #f0fdf4;
+
+  --color-warning: #b45309;
+  --color-warning-soft: #fffbeb;
+
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+
+  --color-info: #0369a1;
+  --color-info-soft: #f0f9ff;
+}
+
+
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--color-text);
+  background-color: var(--color-background);
+}
+
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
