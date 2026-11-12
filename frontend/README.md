@@ -1,16 +1,15 @@
-# React + Vite
+# Urbanística ERP V2 — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React, React Router y Tailwind CSS v4. Diseño y componentes compatibles reutilizados de V1.
 
-Currently, two official plugins are available:
+```sh
+npm install
+npm run dev
+npm run build
+npm run lint
+node --test tests/roles.test.js
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Copiar `.env.example` a `.env` para configurar `VITE_API_URL`. Para desplegar, servir `dist/` con fallback de las rutas del navegador a `index.html`.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+El backend V2 implementa autenticación JWT y API de empresas. Configure la conexión y utilice usuarios reales con rol global; no hay datos ni sesiones de demostración. Ver [etapas, componentes reutilizados y contrato pendiente](docs/MIGRACION-V1.md).

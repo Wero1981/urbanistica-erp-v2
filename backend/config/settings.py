@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 import os
+from datetime import timedelta
+from corsheaders.defaults import default_headers
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -22,12 +24,10 @@ load_dotenv(BASE_DIR / ".env")
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$a(-xyssmwkh5dps0-lldsywaf9m5**x7#$%+_8^vlnv1#3&0)'
+SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
+ALLOWED_HOSTS = [host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -53,6 +53,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -165,3 +166,20 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+
+# JWT access-only contract used by the V2 frontend.
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_PERMISSION_CLASSES": ("apps.accounts.permissions.HasGlobalRole",),
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 50,
+}
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv(
+    "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+).split(",") if origin.strip()]
+CORS_ALLOW_HEADERS = (*default_headers, "x-company-id")
