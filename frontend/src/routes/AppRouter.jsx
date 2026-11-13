@@ -41,9 +41,15 @@ import GlobalRolesPage from "../pages/GlobalRolesPage";
 import ModulePlaceholder from "../pages/ModulePlaceholder";
 
 import { navigation } from "../config/navigation";
-import { canAccess } from "../config/roles";
+import { canAccess, canWrite } from "../config/roles";
 
 import CompanyDataPage from "../pages/companies/CompanyDataPage";
+import CompanyDataEditPage from "../pages/companies/CompanyDataEditPage";
+
+/*import para propiedades*/
+import PropertiesPage from "../pages/properties/PropertiesPage";
+import PropertyListPage from "../pages/properties/PropertyListPage";
+import PropertyFormPage from "../pages/properties/PropertyFormPage";
 
 /**
  * Protege las rutas que requieren autenticación.
@@ -138,6 +144,10 @@ function ModuleRoute({ item }) {
     return <CompanyDataPage />;
   }
 
+  if (item.key === "propiedades") {
+    return <PropertiesPage />;
+  }
+
   return <ModulePlaceholder title={item.label} />;
 }
 
@@ -229,6 +239,33 @@ function LoginRoute() {
 }
 
 /**
+ * Protege la ruta de edicion empresarial.
+ *
+ * @retuns {import("react").JSX.Element}
+ */
+
+function CompanyDataEditRoute() {
+  const { role } = useAuth();
+
+  if (!canWrite(role)) {
+    return <Navigate to="/datos" replace />;
+  }
+
+  return <CompanyDataEditPage />;
+}
+
+/** Protege el alta y edición de inmuebles para roles de escritura. */
+function PropertyWriteRoute() {
+  const { role } = useAuth();
+
+  if (!canWrite(role)) {
+    return <Navigate to="/propiedades/inmuebles" replace />;
+  }
+
+  return <PropertyFormPage />;
+}
+
+/**
  * Enrutador principal de Urbanística ERP V2.
  *
  * Flujo:
@@ -275,17 +312,45 @@ export default function AppRouter() {
               path="/dashboard"
               element={<DashboardPage />}
             />
+            {/* Ficha empresarial */}
+            <Route
+              path="/datos"
+              element={<CompanyDataPage />}
+            />
+
+            {/* Edición empresarial */}
+            <Route
+              path="/datos/editar"
+              element={<CompanyDataEditRoute />}
+            />
+
+            <Route
+              path="/propiedades/inmuebles"
+              element={<PropertyListPage />}
+            />
+            <Route
+              path="/propiedades/inmuebles/nuevo"
+              element={<PropertyWriteRoute />}
+            />
+            <Route
+              path="/propiedades/inmuebles/:id/editar"
+              element={<PropertyWriteRoute />}
+            />
 
             {/* Módulos configurados en navigation.js */}
             {navigation
-              .filter((item) => item.key !== "dashboard")
-              .map((item) => (
-                <Route
-                  key={item.key}
-                  path={`/${item.key}`}
-                  element={<ModuleRoute item={item} />}
-                />
-              ))}
+            .filter(
+              (item) =>
+                item.key !== "dashboard" &&
+                item.key !== "datos"
+            )
+            .map((item) => (
+              <Route
+                key={item.key}
+                path={`/${item.key}`}
+                element={<ModuleRoute item={item} />}
+              />
+  ))}
 
             {/* Ruta empresarial no encontrada */}
             <Route

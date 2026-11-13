@@ -47,6 +47,10 @@ INSTALLED_APPS = [
     # Aplicaciones del ERP
     "apps.accounts.apps.AccountsConfig",
     "apps.companies.apps.CompaniesConfig",
+    "apps.locations.apps.LocationsConfig",
+
+    # Aplicaciones de propiedades
+    "apps.properties.apps.PropertiesConfig",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
