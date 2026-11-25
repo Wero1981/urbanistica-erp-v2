@@ -53,7 +53,8 @@ export default function useCompanyData(companyId) {
   }, [companyId]);
 
   useEffect(() => {
-    reload();
+    const timer = setTimeout(() => void reload(), 0);
+    return () => clearTimeout(timer);
   }, [reload]);
 
   /**

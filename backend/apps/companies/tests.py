@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import AccessToken
 from apps.accounts.models import Role, User
-from .models import Company
+from .models import Company, CompanyAddress, CompanyPartner, CompanyRepresentative
 
 
 class CompanyAPITests(APITestCase):
@@ -85,3 +85,81 @@ class CompanyAPITests(APITestCase):
         self.assertEqual(len(second['results']), 2)
         self.assertIsNone(second['next'])
         self.assertFalse({c['id'] for c in first['results']} & {c['id'] for c in second['results']})
+
+    def test_company_relations_crud_and_nested_people(self):
+        """Administrador crea, consulta, modifica y desactiva relaciones."""
+        self.authenticate('administrador')
+
+        address = self.client.post('/api/company-addresses/', {
+            'company': self.company.pk,
+            'address_type': 'fiscal',
+            'street': 'Reforma',
+            'exterior_number': '100',
+            'neighborhood': 'Centro',
+            'postal_code': '06000',
+            'municipality': 'Cuauhtémoc',
+            'state': 'Ciudad de México',
+            'country': 'México',
+        }, format='json')
+        self.assertEqual(address.status_code, 201, address.data)
+
+        person = {
+            'person_type': 'fisica',
+            'first_name': 'Ana',
+            'last_name': 'Pérez',
+            'nationality': 'Mexicana',
+        }
+        partner = self.client.post('/api/company-partners/', {
+            'company': self.company.pk,
+            'person': person,
+            'ownership_percentage': '40.00',
+        }, format='json')
+        self.assertEqual(partner.status_code, 201, partner.data)
+
+        representative = self.client.post('/api/company-representatives/', {
+            'company': self.company.pk,
+            'person': {**person, 'first_name': 'Luis'},
+            'position': 'Apoderado legal',
+        }, format='json')
+        self.assertEqual(representative.status_code, 201, representative.data)
+
+        response = self.client.get(f'/api/company-partners/?company={self.company.pk}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['person']['first_name'], 'Ana')
+
+        partner_url = f'/api/company-partners/{partner.data["id"]}/'
+        updated = self.client.patch(partner_url, {
+            'ownership_percentage': '45.00',
+            'person': {'first_name': 'Anabel'},
+        }, format='json')
+        self.assertEqual(updated.status_code, 200, updated.data)
+        self.assertEqual(updated.data['person']['first_name'], 'Anabel')
+
+        self.assertEqual(self.client.delete(partner_url).status_code, 204)
+        self.assertFalse(CompanyPartner.objects.get(pk=partner.data['id']).is_active)
+        self.assertEqual(CompanyAddress.objects.filter(is_active=True).count(), 1)
+        self.assertEqual(CompanyRepresentative.objects.filter(is_active=True).count(), 1)
+
+    def test_company_relations_respect_global_roles(self):
+        """Consulta no escribe y capturista no elimina relaciones."""
+        payload = {
+            'company': self.company.pk,
+            'address_type': 'fiscal',
+            'street': 'Uno',
+            'exterior_number': '1',
+            'neighborhood': 'Centro',
+            'postal_code': '06000',
+            'municipality': 'Cuauhtémoc',
+            'state': 'Ciudad de México',
+        }
+        self.authenticate('consulta')
+        self.assertEqual(self.client.post('/api/company-addresses/', payload, format='json').status_code, 403)
+
+        self.authenticate('capturista')
+        created = self.client.post('/api/company-addresses/', payload, format='json')
+        self.assertEqual(created.status_code, 201, created.data)
+        self.assertEqual(
+            self.client.delete(f'/api/company-addresses/{created.data["id"]}/').status_code,
+            403,
+        )

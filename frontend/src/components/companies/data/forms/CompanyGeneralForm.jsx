@@ -1,35 +1,39 @@
 /**
- * Formulario de información general de una empresa.
+ * Formulario de información general de empresas.
  *
- * Permite consultar y modificar los datos generales
- * de la empresa seleccionada.
+ * Utiliza componentes reutilizables del ERP.
  *
  * @module components/companies/data/forms/CompanyGeneralForm
  */
 
 import { useState } from "react";
 
-import Button from "../../../ui/Button";
+import Form from "../../../ui/Forms";
+import FormField from "../../../ui/FormField";
+import Input from "../../../ui/Input";
+import Select from "../../../ui/Select";
+import Textarea from "../../../ui/Textarea";
 
 /**
- * Renderiza el formulario de datos generales.
+ * @typedef {Object} CompanyGeneralFormProps
+ * @property {Object} company - Empresa.
+ * @property {(payload: Object) => Promise<boolean>} onSave - Guarda los datos.
+ * @property {() => void} onCancel - Cancela la edición.
+ * @property {boolean} [saving] - Estado de guardado.
+ */
+
+/**
+ * Renderiza los datos generales editables.
  *
- * @param {Object} props
- * @param {Object} props.company - Información de la empresa.
- * @param {Function} props.onSave - Guarda los cambios.
- * @param {boolean} props.saving - Indica si está guardando.
- * @param {boolean} props.readOnly - Activa modo consulta.
- *
+ * @param {CompanyGeneralFormProps} props
  * @returns {import("react").JSX.Element}
  */
 export default function CompanyGeneralForm({
   company,
   onSave,
+  onCancel,
   saving = false,
-  readOnly = false,
 }) {
-  // La página monta el formulario cuando termina de cargar la empresa.
-  // Las siguientes renderizaciones conservan el borrador del usuario.
   const [form, setForm] = useState(() => ({
     company_type: company.company_type || "moral",
     name: company.name || "",
@@ -37,11 +41,12 @@ export default function CompanyGeneralForm({
     economic_activity: company.economic_activity || "",
   }));
 
+  const [errors, setErrors] = useState({});
+
   /**
-   * Actualiza un campo del formulario.
+   * Actualiza los valores del formulario.
    *
-   * @param {React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>} event
-   * @returns {void}
+   * @param {import("react").ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>} event
    */
   function handleChange(event) {
     const { name, value } = event.target;
@@ -50,145 +55,131 @@ export default function CompanyGeneralForm({
       ...current,
       [name]: value,
     }));
+
+    setErrors((current) => ({
+      ...current,
+      [name]: "",
+    }));
   }
 
   /**
-   * Envía la información para su actualización.
+   * Valida los datos antes de enviarlos.
    *
-   * @param {React.FormEvent<HTMLFormElement>} event
+   * @returns {Object} Errores encontrados.
+   */
+  function validate() {
+    const nextErrors = {};
+
+    if (!form.name.trim()) {
+      nextErrors.name = "La razón social o nombre completo es obligatorio.";
+    }
+
+    if (form.name.trim().length > 200) {
+      nextErrors.name = "El nombre no puede superar 200 caracteres.";
+    }
+
+    return nextErrors;
+  }
+
+  /**
+   * Envía los datos validados al componente padre.
+   *
    * @returns {Promise<void>}
    */
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function handleSave() {
+    const nextErrors = validate();
 
-    if (readOnly || saving) return;
+    setErrors(nextErrors);
 
-    const payload = {
-      ...form,
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    await onSave({
+      company_type: form.company_type,
       name: form.name.trim(),
       trade_name: form.trade_name.trim(),
       economic_activity: form.economic_activity.trim(),
-    };
-
-    if (await onSave(payload)) {
-      setForm(payload);
-    }
+    });
   }
 
-  const inputClass =
-    "w-full rounded-xl border border-border bg-surface px-4 py-3 " +
-    "text-text outline-none transition focus:border-primary " +
-    "disabled:cursor-not-allowed disabled:opacity-70";
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-
-      <div>
-        <h2 className="text-xl font-semibold">
-          Información general
-        </h2>
-
-        <p className="mt-2 text-sm text-text-muted">
-          Capture los datos principales de la empresa.
-        </p>
-      </div>
-
+    <Form
+      title="Información general"
+      description="Actualice los datos principales de la empresa."
+      onSubmit={handleSave}
+      onCancel={onCancel}
+      saving={saving}
+    >
       <div className="grid gap-6 md:grid-cols-2">
-
-        <div>
-          <label
-            htmlFor="company_type"
-            className="mb-2 block text-sm font-medium"
-          >
-            Tipo de contribuyente
-          </label>
-
-          <select
-            id="company_type"
+        <FormField
+          id="company-type"
+          label="Tipo de contribuyente"
+          required
+        >
+          <Select
+            id="company-type"
             name="company_type"
             value={form.company_type}
             onChange={handleChange}
-            disabled={readOnly || saving}
-            className={inputClass}
-          >
-            <option value="moral">Persona moral</option>
-            <option value="fisica">Persona física</option>
-          </select>
-        </div>
+            disabled={saving}
+            required
+            options={[
+              { value: "moral", label: "Persona moral" },
+              { value: "fisica", label: "Persona física" },
+            ]}
+          />
+        </FormField>
 
-        <div>
-          <label
-            htmlFor="name"
-            className="mb-2 block text-sm font-medium"
-          >
-            Razón social o nombre completo *
-          </label>
-
-          <input
-            id="name"
+        <FormField
+          id="company-name"
+          label="Razón social o nombre completo"
+          required
+          error={errors.name}
+        >
+          <Input
+            id="company-name"
             name="name"
-            type="text"
             value={form.name}
             onChange={handleChange}
+            disabled={saving}
             maxLength={200}
             required
-            disabled={readOnly || saving}
-            className={inputClass}
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={
+              errors.name ? "company-name-error" : undefined
+            }
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label
-            htmlFor="trade_name"
-            className="mb-2 block text-sm font-medium"
-          >
-            Nombre comercial
-          </label>
-
-          <input
-            id="trade_name"
+        <FormField
+          id="company-trade-name"
+          label="Nombre comercial"
+        >
+          <Input
+            id="company-trade-name"
             name="trade_name"
-            type="text"
             value={form.trade_name}
             onChange={handleChange}
+            disabled={saving}
             maxLength={200}
-            disabled={readOnly || saving}
-            className={inputClass}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label
-            htmlFor="economic_activity"
-            className="mb-2 block text-sm font-medium"
-          >
-            Actividad económica
-          </label>
-
-          <textarea
-            id="economic_activity"
+        <FormField
+          id="company-economic-activity"
+          label="Actividad económica"
+        >
+          <Textarea
+            id="company-economic-activity"
             name="economic_activity"
             value={form.economic_activity}
             onChange={handleChange}
+            disabled={saving}
             rows={3}
-            disabled={readOnly || saving}
-            className={inputClass}
           />
-        </div>
-
+        </FormField>
       </div>
-
-      {!readOnly && (
-        <div className="flex justify-end border-t border-border pt-6">
-          <Button
-            type="submit"
-            disabled={saving || !form.name.trim()}
-          >
-            {saving ? "Guardando..." : "Guardar cambios"}
-          </Button>
-        </div>
-      )}
-
-    </form>
+    </Form>
   );
 }
